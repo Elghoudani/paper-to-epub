@@ -118,19 +118,92 @@ IMAGE_GRAYSCALE     = True           # False for a colour reader
 
 ## How it works
 
+### Behind the scenes, end to end
+
+```mermaid
+flowchart TD
+    subgraph IN["1 · Input"]
+        UI["Web UI<br/>web/index.html"]
+        CLI["Command line<br/>convert.py"]
+    end
+
+    subgraph ENG["2 · Local engine — server.py, bound to 127.0.0.1"]
+        POST["POST /convert<br/>PDF body or arXiv id"]
+        CHECK["Checks: size limit,<br/>%PDF header, safe file name"]
+        QUEUE["Job queue<br/>one conversion at a time"]
+        POLL["GET /jobs/id<br/>stage · percent · log"]
+    end
+
+    subgraph SRC["3 · Resolve the source — sources.py"]
+        LOCAL["Local PDF<br/>saved to books/"]
+        ARXIV["arXiv id or URL<br/>fetched from arxiv.org"]
+    end
+
+    subgraph PIPE["4 · Four-stage pipeline — every stage cached in data/book/"]
+        R["Stage 1 · render.py<br/>pages → 300 dpi rasters<br/>PyMuPDF"]
+        L["Stage 2 · layout.py<br/>surya detects regions<br/>geometry sorts reading order"]
+        X["Stage 3 · extract.py<br/>body text → styled runs<br/>figures · tables · equations → images"]
+        A["Stage 4 · assemble.py<br/>chapters · contents · links · cover<br/>ebooklib"]
+    end
+
+    OUT["output/book.epub<br/>GET /jobs/id/download"]
+    KINDLE["Send to Kindle / e-reader"]
+
+    UI --> POST --> CHECK --> QUEUE
+    CLI --> SRC
+    QUEUE --> SRC
+    LOCAL --> R
+    ARXIV --> R
+    R --> L --> X --> A --> OUT --> KINDLE
+    QUEUE -.-> POLL -.-> UI
 ```
-PDF
- ├─ render.py     pages → 300 dpi rasters                    PyMuPDF
- ├─ layout.py     regions + reading order                    surya + geometry
- ├─ extract.py    text → styled runs, visuals → images       PyMuPDF + Pillow
- │                plus cleanup: junk, headings, paragraphs
- └─ assemble.py   chapters, contents, links, cover           ebooklib
-EPUB
+
+### Stage 3 in detail — where the quality comes from
+
+```mermaid
+flowchart LR
+    REG["Regions in<br/>reading order"] --> SPLIT{"Region label"}
+
+    SPLIT -->|"Text · Section-header · List-item"| T1["Word extraction<br/>centre-point clip"]
+    T1 --> T2["Font flags → italic,<br/>bold, superscript runs"]
+    T2 --> C1["1 · Junk filter<br/>headers, footers, watermarks"]
+    C1 --> C2["2 · Heading sanity<br/>demote fake headings"]
+    C2 --> C3["3 · Drop caps"]
+    C3 --> C4["4 · Paragraph stitching<br/>across columns and pages"]
+
+    SPLIT -->|"Figure · Table · Formula"| I1["Survey render<br/>find the ink"]
+    I1 --> I2["Re-render from the PDF's<br/>vectors at output size"]
+    I2 --> I3{"Photo or<br/>line art?"}
+    I3 -->|"line art"| I4["Hard e-ink curve → PNG"]
+    I3 -->|"photo"| I5["Percentile stretch → JPEG"]
+
+    C4 --> OUTX["extraction_manifest.json"]
+    I4 --> OUTX
+    I5 --> OUTX
+```
+
+### Caching
+
+```mermaid
+flowchart LR
+    RUN["Run a stage<br/>for page N"] --> HIT{"Cached record<br/>exists?"}
+    HIT -->|"no"| WORK["Do the work<br/>write data/book/…"]
+    HIT -->|"yes"| STAMP{"Version stamp and<br/>page size match?"}
+    STAMP -->|"yes"| SKIP["Reuse it"]
+    STAMP -->|"no"| WORK
 ```
 
 Each stage writes to `data/<book>/` and skips work already done. Caches carry a
 version stamp and the page dimensions, so changing the resolution or the format
-regenerates what it has to and nothing else.
+regenerates what it has to and nothing else. Cleanup is never cached: it runs on
+every load, so a new junk pattern takes effect on the next run.
+
+| Stage | File | Library | Writes |
+|---|---|---|---|
+| 1 · Render | `render.py` | PyMuPDF | `pages/page_NNNN.png`, `manifest.json` |
+| 2 · Layout | `layout.py` | surya 0.6.0 + geometry | `layout/page_NNNN.json` |
+| 3 · Extract | `extract.py` | PyMuPDF + Pillow | `extraction/…`, `regions/*.png\|.jpg` |
+| 4 · Assemble | `assemble.py` | ebooklib | `output/<book>.epub` |
 
 Full detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -194,7 +267,9 @@ a stitching rule takes effect on the next run without a full re-extract.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Free to use, modify and build on.
+All rights reserved — see [LICENSE](LICENSE). The source is published for
+reading only; using, copying, modifying or redistributing it requires written
+permission.
 
 Built for reading papers on a 6-inch Kindle, because nothing else did it
 properly. If it saves you some eye strain, that was the point.
