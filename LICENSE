@@ -1,13 +1,21 @@
+Paper to EPUB License
+
 Copyright (c) 2026 Youssef Elghoudani. All rights reserved.
 
-This source code is published for viewing only.
+Permission is granted, free of charge, to any person obtaining a copy of this
+software to download, install and run it, for any purpose, subject to the
+following conditions:
 
-No permission is granted to use, copy, modify, merge, publish, distribute,
-sublicense, or sell copies of this software, in whole or in part, without
-prior written permission from the copyright holder.
+1. No modification. You may not modify, adapt, translate, or create derivative
+   works based on this software or any part of it.
 
-Viewing and forking this repository on GitHub is permitted solely as allowed
-by the GitHub Terms of Service.
+2. No redistribution of altered copies. You may not distribute, publish, or
+   make available any modified version of this software.
+
+3. This notice must remain intact in every copy.
+
+Forking this repository on GitHub is permitted solely as allowed by the GitHub
+Terms of Service and grants no additional rights.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM,

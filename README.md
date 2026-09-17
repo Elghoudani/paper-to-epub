@@ -267,9 +267,9 @@ a stitching rule takes effect on the next run without a full re-extract.
 
 ## License
 
-All rights reserved — see [LICENSE](LICENSE). The source is published for
-reading only; using, copying, modifying or redistributing it requires written
-permission.
+Free to use, not to modify — see [LICENSE](LICENSE). You may download, install
+and run it for any purpose. Modifying it, or distributing a modified version,
+is not permitted.
 
 Built for reading papers on a 6-inch Kindle, because nothing else did it
 properly. If it saves you some eye strain, that was the point.
