@@ -1,0 +1,24 @@
+services:
+  pdf2epub:
+    build: .
+    image: pdf2epub:latest
+    volumes:
+      - ./books:/app/books
+      - ./data:/app/data
+      - ./output:/app/output
+      - hf_cache:/models
+
+  engine:
+    build: .
+    image: pdf2epub:latest
+    entrypoint: ["python", "server.py", "--host", "0.0.0.0", "--port", "8765"]
+    ports:
+      - "127.0.0.1:8765:8765"
+    volumes:
+      - ./books:/app/books
+      - ./data:/app/data
+      - ./output:/app/output
+      - hf_cache:/models
+
+volumes:
+  hf_cache:

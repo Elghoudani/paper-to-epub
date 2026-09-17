@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Paper to EPUB</title>
+<style>
+  :root {
+    --bg: #f5f2ec; --surface: #fbf9f5; --ink: #1c1a18; --muted: #6d675f;
+    --accent: #9b2226; --rule: #e3ded4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0f0e; --surface: #171614; --ink: #ece8e1; --muted: #9a938a;
+      --accent: #c1272d; --rule: #2b2926;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 46rem; margin: 0 auto; padding: 4rem 1.5rem 6rem; }
+  h1 { font-family: ui-serif, Georgia, "Times New Roman", serif; font-weight: 400;
+       font-size: 2.4rem; line-height: 1.15; margin: 0 0 1rem; }
+  p { color: var(--muted); margin: 0 0 1rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .875em; }
+  .panel { border: 1px solid var(--rule); background: var(--surface); margin-top: 2.5rem; }
+  .status { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+            border-bottom: 1px solid var(--rule); padding: .75rem 1.25rem;
+            font-family: ui-monospace, monospace; font-size: .75rem; color: var(--muted); }
+  .dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%;
+         background: var(--accent); margin-right: .5rem; }
+  .body { padding: 1.75rem; }
+  .drop { border: 1px dashed var(--rule); padding: 3rem 1.5rem; text-align: center;
+          cursor: pointer; transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); }
+  .drop strong { display: block; font-weight: 500; color: var(--ink); }
+  .drop span { font-size: .875rem; color: var(--muted); }
+  .or { display: flex; align-items: center; gap: 1rem; margin: 1.5rem 0;
+        font-family: ui-monospace, monospace; font-size: .7rem; letter-spacing: .1em;
+        text-transform: uppercase; color: var(--muted); }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+  label { display: block; font-size: .875rem; color: var(--muted); margin-bottom: .5rem; }
+  input[type=text] {
+    width: 100%; padding: .8rem 1rem; border: 1px solid var(--rule); background: var(--bg);
+    color: var(--ink); font-family: ui-monospace, monospace; font-size: .875rem;
+  }
+  input[type=text]:focus { outline: none; border-color: var(--accent); }
+  button {
+    width: 100%; margin-top: 1.5rem; padding: .9rem 1.5rem; border: 0; cursor: pointer;
+    background: var(--ink); color: var(--bg); font: inherit; font-size: .9rem;
+    transition: background .15s;
+  }
+  button:hover:not(:disabled) { background: var(--accent); }
+  button:disabled { opacity: .35; cursor: not-allowed; }
+  .bar { height: 1px; background: var(--rule); margin: 1.25rem 0; }
+  .bar > i { display: block; height: 1px; background: var(--accent); width: 0;
+             transition: width .4s ease; }
+  ol { list-style: none; margin: 0; padding: 0; }
+  ol li { display: flex; align-items: center; gap: .75rem; font-size: .9rem;
+          color: var(--muted); padding: .2rem 0; }
+  ol li .s { width: .375rem; height: .375rem; border-radius: 50%; border: 1px solid var(--muted); }
+  ol li.done { color: var(--ink); } ol li.done .s { background: var(--ink); border-color: var(--ink); }
+  ol li.active { color: var(--ink); } ol li.active .s { background: var(--accent); border-color: var(--accent); }
+  .log { font-family: ui-monospace, monospace; font-size: .72rem; color: var(--muted);
+         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+         border-top: 1px solid var(--rule); padding-top: 1rem; margin-top: 1.5rem; }
+  .out { border-top: 1px solid var(--rule); margin-top: 1.5rem; padding-top: 1.5rem; }
+  .out a.dl { display: inline-block; width: auto; padding: .8rem 1.5rem; background: var(--ink);
+              color: var(--bg); text-decoration: none; font-size: .9rem; }
+  .out a.dl:hover { background: var(--accent); }
+  .out button.again { width: auto; margin: 0 0 0 .5rem; background: none; color: var(--ink);
+                      border: 1px solid var(--rule); }
+  .out button.again:hover { background: none; border-color: var(--accent); color: var(--accent); }
+  .err { color: var(--accent); font-size: .875rem; }
+  pre.trace { background: var(--bg); border: 1px solid var(--rule); padding: 1rem;
+              overflow-x: auto; font-size: .72rem; color: var(--muted); }
+  footer { margin-top: 3rem; font-size: .8rem; color: var(--muted); }
+  footer a { color: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Paper to EPUB</h1>
+  <p>
+    Two-column research papers, converted into EPUBs that reflow on a 6-inch
+    e-reader. Body text stays text; every figure, table, plot and equation is
+    rendered from the PDF as an image, so the maths arrives intact.
+  </p>
+  <p>
+    This runs on your machine. Nothing is uploaded anywhere.
+  </p>
+
+  <div class="panel">
+    <div class="status">
+      <span><i class="dot"></i><span id="engine">checking…</span></span>
+      <span id="queue"></span>
+    </div>
+    <div class="body">
+      <div id="form">
+        <div class="drop" id="drop">
+          <strong id="dropTitle">Drop a PDF here</strong>
+          <span id="dropSub">or click to choose one</span>
+          <input type="file" id="file" accept="application/pdf,.pdf" hidden />
+        </div>
+        <div class="or">or</div>
+        <label for="arxiv">arXiv link or ID</label>
+        <input type="text" id="arxiv" placeholder="arxiv.org/abs/2304.07193" />
+        <p id="error" class="err" hidden></p>
+        <button id="go" disabled>Convert to EPUB</button>
+      </div>
+
+      <div id="progress" hidden>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <strong id="stage" style="font-family:ui-serif,Georgia,serif;font-size:1.2rem;font-weight:400"></strong>
+          <span id="pct" style="font-family:ui-monospace,monospace;font-size:.75rem;color:var(--muted)"></span>
+        </div>
+        <div class="bar"><i id="fill"></i></div>
+        <ol id="stages"></ol>
+        <div class="log" id="log" hidden></div>
+        <pre class="trace" id="trace" hidden></pre>
+        <div class="out" id="out" hidden>
+          <div id="outName" style="font-family:ui-monospace,monospace;font-size:.9rem"></div>
+          <div id="outMeta" style="font-size:.875rem;color:var(--muted);margin-top:.25rem"></div>
+          <div style="margin-top:1.25rem">
+            <a class="dl" id="download">Download .epub</a>
+            <button class="again" id="again">Convert another</button>
+          </div>
+          <p style="margin-top:1.25rem;font-size:.875rem">
+            To read it on a Kindle, send it through
+            <a href="https://www.amazon.com/sendtokindle" target="_blank" rel="noreferrer">Send to Kindle</a>.
+            Amazon converts the EPUB on the way in; copying it over USB is unreliable.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    First run downloads the layout model once, then works offline.
+    Finished files also appear in <code>output/</code>.
+  </footer>
+</main>
+
+<script>
+const STAGES = [
+  ["render", "Render pages"],
+  ["layout", "Detect layout"],
+  ["extract", "Extract text and figures"],
+  ["epub", "Assemble EPUB"],
+];
+const $ = (id) => document.getElementById(id);
+let file = null, timer = null;
+
+STAGES.forEach(([key, label]) => {
+  const li = document.createElement("li");
+  li.id = "st-" + key;
+  li.innerHTML = '<span class="s"></span>' + label;
+  $("stages").appendChild(li);
+});
+
+async function health() {
+  try {
+    const r = await fetch("/health");
+    const d = await r.json();
+    $("engine").textContent = "engine ready";
+    $("queue").textContent = d.queue ? d.queue + " waiting" : "";
+  } catch {
+    $("engine").textContent = "engine unreachable";
+  }
+}
+health();
+
+function setError(msg) {
+  const el = $("error");
+  el.textContent = msg || "";
+  el.hidden = !msg;
+}
+
+function pick(f) {
+  setError(null);
+  if (!f) return;
+  if (!f.name.toLowerCase().endsWith(".pdf")) return setError("That isn't a PDF.");
+  file = f;
+  $("dropTitle").textContent = f.name;
+  $("dropSub").textContent = (f.size / 1e6).toFixed(1) + " MB — click to choose another";
+  $("arxiv").value = "";
+  $("go").disabled = false;
+}
+
+$("drop").addEventListener("click", () => $("file").click());
+$("file").addEventListener("change", (e) => pick(e.target.files[0]));
+["dragover", "dragenter"].forEach((t) =>
+  $("drop").addEventListener(t, (e) => { e.preventDefault(); $("drop").classList.add("over"); }));
+["dragleave", "drop"].forEach((t) =>
+  $("drop").addEventListener(t, () => $("drop").classList.remove("over")));
+$("drop").addEventListener("drop", (e) => { e.preventDefault(); pick(e.dataTransfer.files[0]); });
+$("arxiv").addEventListener("input", (e) => {
+  if (e.target.value) { file = null; }
+  $("go").disabled = !e.target.value && !file;
+});
+
+$("go").addEventListener("click", async () => {
+  setError(null);
+  let res;
+  try {
+    if (file) {
+      res = await fetch("/convert", {
+        method: "POST",
+        headers: { "Content-Type": "application/pdf", "X-Filename": file.name },
+        body: file,
+      });
+    } else {
+      res = await fetch("/convert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ arxiv: $("arxiv").value.trim() }),
+      });
+    }
+  } catch {
+    return setError("Could not reach the engine.");
+  }
+  const job = await res.json();
+  if (!res.ok) return setError(job.error || "The engine refused that.");
+  $("form").hidden = true;
+  $("progress").hidden = false;
+  track(job);
+});
+
+function track(job) {
+  render(job);
+  clearInterval(timer);
+  timer = setInterval(async () => {
+    try {
+      const r = await fetch("/jobs/" + job.id);
+      const s = await r.json();
+      render(s);
+      if (s.status === "done" || s.status === "error") clearInterval(timer);
+    } catch {
+      clearInterval(timer);
+    }
+  }, 1000);
+}
+
+function render(s) {
+  $("stage").textContent =
+    s.status === "done" ? "Ready" : s.status === "error" ? "That didn't work" : s.stageLabel;
+  $("pct").textContent = s.status === "error" ? "" : Math.round(s.percent) + "%";
+  $("fill").style.width = (s.status === "error" ? 100 : s.percent) + "%";
+
+  const idx = STAGES.findIndex(([k]) => k === s.stage);
+  STAGES.forEach(([k], i) => {
+    const li = $("st-" + k);
+    li.className = s.status === "done" || (idx >= 0 && i < idx) ? "done" : i === idx ? "active" : "";
+  });
+
+  if (s.log && s.log.length && s.status !== "done") {
+    $("log").hidden = false;
+    $("log").textContent = s.log[s.log.length - 1];
+  } else {
+    $("log").hidden = true;
+  }
+
+  if (s.status === "error") {
+    $("trace").hidden = false;
+    $("trace").textContent = s.error || "";
+  }
+
+  if (s.status === "done") {
+    $("out").hidden = false;
+    $("outName").textContent = s.filename || "";
+    $("outMeta").textContent =
+      (s.size ? (s.size / 1e6).toFixed(1) + " MB" : "") + (s.title ? " · " + s.title : "");
+    $("download").href = "/jobs/" + s.id + "/download";
+  }
+}
+
+$("again").addEventListener("click", () => location.reload());
+</script>
+</body>
+</html>

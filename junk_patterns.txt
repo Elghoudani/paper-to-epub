@@ -1,0 +1,8 @@
+# Extra text to strip, one Python regex per line, '#' starts a comment.
+# Anything matching (case-insensitively, anywhere in a region's text) is treated
+# as publisher chrome and dropped. The built-in list in extract.py covers the
+# generic cases; add a line here for a journal that prints something specific.
+#
+# Examples, from journals that stamp every page:
+#   https?://\S*somejournal\.org
+#   www\.some-society\.org\.uk
